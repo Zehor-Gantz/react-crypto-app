@@ -1,6 +1,19 @@
 import { useContext } from "react";
-import { Layout, Card, Statistic, List, Typography, Tag } from "antd";
-import { ArrowDownOutlined, ArrowUpOutlined } from "@ant-design/icons";
+import {
+  Layout,
+  Card,
+  Statistic,
+  List,
+  Typography,
+  Tag,
+  Button,
+  Space,
+} from "antd";
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import { capitalize } from "../../utils";
 import CryptoContext from "../../context/crypto-context";
 
@@ -9,7 +22,12 @@ const siderStyle = {
 };
 
 export default function AppSider() {
-  const { assets } = useContext(CryptoContext);
+  const { assets, setAssets } = useContext(CryptoContext);
+
+  function clearAssets() {
+    setAssets([]);
+    localStorage.removeItem("assets");
+  }
 
   return (
     <Layout.Sider width="25%" style={siderStyle}>
@@ -55,6 +73,16 @@ export default function AppSider() {
           />
         </Card>
       ))}
+
+      <Button
+        type="primary"
+        danger
+        block
+        icon={<DeleteOutlined />}
+        onClick={clearAssets}
+      >
+        Clear Assets
+      </Button>
     </Layout.Sider>
   );
 }

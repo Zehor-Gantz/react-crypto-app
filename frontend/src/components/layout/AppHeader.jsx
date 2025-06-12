@@ -47,6 +47,7 @@ export default function AppHeader() {
   const [modal, setModal] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const { crypto } = useCrypto();
+  const [searchValue, setSearchValue] = useState("");
 
   useEffect(() => {
     const keypress = (event) => {
@@ -67,7 +68,7 @@ export default function AppHeader() {
     <Layout.Header style={headerStyle}>
       <Select
         style={{ width: 250 }}
-        open={select}
+        onOpenChange={(select) => setSelect(select)}
         onSelect={handleSelect}
         onClick={() => setSelect((prev) => !prev)}
         value="press / to open"
@@ -76,16 +77,49 @@ export default function AppHeader() {
           value: coin.id,
           icon: coin.icon,
         }))}
-        optionRender={(option) => (
-          <Space>
-            <img
-              style={{ width: 20 }}
-              src={option.data.icon}
-              alt={option.data.label}
-            />
-            {option.data.label}
-          </Space>
-        )}
+        showSearch
+        optionFilterProp="label"
+        filterOption={(input, option) =>
+          option.label.toLowerCase().includes(input.toLowerCase())
+        }
+        onSearch={(searchValue) => setSearchValue(searchValue)}
+        optionRender={(option) => {
+          const label = option.data.label;
+          const lowerLabel = label.toLowerCase();
+          const index = lowerLabel.indexOf(searchValue.toLowerCase());
+
+          if (index === -1 || !searchValue) {
+            return (
+              <Space>
+                <img
+                  style={{ width: 20 }}
+                  src={option.data.icon}
+                  alt={option.data.label}
+                />
+                {label}
+              </Space>
+            );
+          }
+
+          const beforeStr = label.slice(0, index);
+          const matchStr = label.slice(index, index + searchValue.length);
+          const afterStr = label.slice(index + searchValue.length);
+
+          return (
+            <Space>
+              <img
+                style={{ width: 20 }}
+                src={option.data.icon}
+                alt={option.data.label}
+              />
+              <span>
+                {beforeStr}
+                <span style={{ backgroundColor: "yellow" }}>{matchStr}</span>
+                {afterStr}
+              </span>
+            </Space>
+          );
+        }}
       />
       <Button type="primary" onClick={() => setDrawer(true)}>
         Add Asset Text

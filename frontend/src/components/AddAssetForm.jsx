@@ -14,16 +14,7 @@ import {
 import { useState, useRef } from "react";
 import { useCrypto } from "../context/crypto-context";
 import CoinInfo from "./CoinInfo";
-
-const validateMessages = {
-  required: "${label} is required",
-  types: {
-    number: "${label} is not valid number",
-  },
-  number: {
-    range: "${label} must bin between &{min} and &{max}",
-  },
-};
+import useAddAssetForm from "./useAddAssetForm";
 
 export default function AddAssetForm({ onClose }) {
   const [form] = Form.useForm();
@@ -31,6 +22,8 @@ export default function AddAssetForm({ onClose }) {
   const [coin, setCoin] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const assetRef = useRef();
+  const { validateMessages, onFinish, handleAmountChange, handlePriceChange } =
+    useAddAssetForm({ coin, form, assetRef, setSubmitted, addAsset });
 
   if (submitted) {
     return (
@@ -72,32 +65,6 @@ export default function AddAssetForm({ onClose }) {
     );
   }
 
-  function onFinish(values) {
-    const newAsset = {
-      id: coin.id,
-      amount: values.amount,
-      price: values.price,
-      date: values.date?.$d ?? new Date(),
-    };
-    assetRef.current = newAsset;
-    setSubmitted(true);
-		addAsset(newAsset)
-  }
-
-  function handleAmountChange(value) {
-    const price = form.getFieldValue("price");
-    form.setFieldsValue({
-      total: +(value * price).toFixed(2),
-    });
-  }
-
-  function handlePriceChange(value) {
-    const amount = form.getFieldValue("amount");
-    form.setFieldsValue({
-      total: +(amount * value).toFixed(2),
-    });
-  }
-
   return (
     <Form
       form={form}
@@ -117,10 +84,18 @@ export default function AddAssetForm({ onClose }) {
         label="Amount"
         name="amount"
         rules={[
+          { required: true, message: "Amount is required" },
+          { type: "number", min: 0, message: "Amount must be a number >= 0" },
           {
-            required: true,
-            type: "number",
-            min: 0,
+            validator: (rule, value) => {
+              if (value === undefined || value === null) {
+                return Promise.resolve();
+              }
+              if (value > 1000) {
+                return Promise.reject(new Error("Amount cannot exceed 1000"));
+              }
+              return Promise.resolve();
+            },
           },
         ]}
       >

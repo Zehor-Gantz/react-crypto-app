@@ -11,7 +11,14 @@ const CryptoContext = createContext({
 export function CryptoContextProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [crypto, setCrypto] = useState([]);
-  const [assets, setAssets] = useState([]);
+  const [assets, setAssets] = useState(() => {
+    const savedAssets = localStorage.getItem("assets");
+    return savedAssets ? JSON.parse(savedAssets) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("assets", JSON.stringify(assets));
+  }, [assets]);
 
   function mapAssets(assets, result) {
     return assets.map((asset) => {
@@ -27,25 +34,63 @@ export function CryptoContextProvider({ children }) {
     });
   }
 
+  function mergeAssets(savedAssets, apiAssets) {
+    const apiAssetsDict = apiAssets.reduce((acc, asset) => {
+      acc[asset.id] = asset;
+      return acc;
+    }, {});
+
+    const combined = [];
+
+    savedAssets.forEach((saved) => {
+      if (apiAssetsDict[saved.id]) {
+        combined.push({ ...apiAssetsDict[saved.id], ...saved });
+        delete apiAssetsDict[saved.id];
+      } else {
+        combined.push(saved);
+      }
+    });
+
+    Object.values(apiAssetsDict).forEach((asset) => combined.push(asset));
+
+    return combined;
+  }
+
   useEffect(() => {
     async function preload() {
       setLoading(true);
       const { result } = await fakeFetchCrypto();
-      const assets = await fetchAssets();
+      const apiAssets = await fetchAssets();
 
-      setAssets(mapAssets(assets, result));
+      const savedAssets = localStorage.getItem("assets");
+      const parsedSavedAssets = savedAssets ? JSON.parse(savedAssets) : [];
+
+      const combinedAssets = mergeAssets(parsedSavedAssets, apiAssets);
+      setAssets(mapAssets(combinedAssets, result));
+
       setCrypto(result);
       setLoading(false);
     }
     preload();
   }, []);
 
-  function addAsset(newAsset) {
-    setAssets((prev) => mapAssets([...prev, newAsset], crypto));
+  async function addAsset(newAsset) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (Math.random() > 0.5) {
+          setAssets((prev) => mapAssets([...prev, newAsset], crypto));
+          resolve();
+        } else {
+          reject(new Error("Amount cannot exceed 1000"));
+        }
+      }, 1000);
+    });
   }
 
   return (
-    <CryptoContext.Provider value={{ loading, crypto, assets, addAsset }}>
+    <CryptoContext.Provider
+      value={{ loading, crypto, assets, setAssets, addAsset }}
+    >
       {children}
     </CryptoContext.Provider>
   );
